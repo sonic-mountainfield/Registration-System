@@ -5,6 +5,11 @@ const SHEETDB_URL = 'https://sheetdb.io/api/v1/rzyq1bdriv1u0';
 const SHEET_NAME = 'Registration';
 const ADMIN_PASSWORD = '80648064';
 
+// === EmailJS 正式設定參數 ===
+const EMAILJS_SERVICE_ID = 'service_987gg3b';
+const EMAILJS_TEMPLATE_ID = 'template_hm5d9nn';
+const EMAILJS_PUBLIC_KEY = 'gAivgFufM8L44AAow';
+
 export default function AdminStep() {
   const [adminAuthed, setAdminAuthed] = useState(false);
   const [adminPasswordInput, setAdminPasswordInput] = useState('');
@@ -12,8 +17,9 @@ export default function AdminStep() {
   const [adminLoading, setAdminLoading] = useState(false);
   const [selectedTripFilter, setSelectedTripFilter] = useState('全部行程');
 
-  // 信件預覽視窗狀態
+  // 信件預覽與寄送狀態
   const [emailModalOrder, setEmailModalOrder] = useState(null);
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
 
   // 管理員驗證
@@ -27,7 +33,7 @@ export default function AdminStep() {
     fetchAdminData();
   };
 
-  // 載入全部名單
+  // 載入名單
   const fetchAdminData = async () => {
     setAdminLoading(true);
     try {
@@ -77,7 +83,6 @@ export default function AdminStep() {
     }
   };
 
-  // 行程下拉篩選項目
   const tripOptions = ['全部行程', ...Array.from(new Set(adminOrders.map(item => item.行程名稱).filter(Boolean)))];
 
   const filteredOrders = adminOrders.filter(item => {
@@ -85,47 +90,57 @@ export default function AdminStep() {
     return item.行程名稱 === selectedTripFilter;
   });
 
-  // 生成確認信主旨與內文
-  const getEmailContent = (order) => {
-    const subject = `【岳野登山社】活動報名成功暨行前確認通知 - ${order.行程名稱}`;
-    const body = `親愛的 ${order.中文姓名} 隊員您好：
+  // 透過 EmailJS REST API 寄送確認信
+  const handleSendViaEmailJS = async (order) => {
+    if (!order.電子信箱) {
+      alert('該隊員未填寫電子信箱，無法發送！');
+      return;
+    }
 
-感謝您報名參加岳野登山社海外高山健行行程！
-我們已完成您的訂金對帳與身分審查，正式確認保留您的活動席位。
+    setIsSendingEmail(true);
 
-【正式報名資訊】
---------------------------------------------------
-・報名編號：${order.報名編號}
-・參加隊員：${order.中文姓名} (${order.性別})
-・預定行程：${order.行程名稱}
-・出發梯次與團號：${order.出發梯次與團號}
-・目前狀態：已審查確認完成 (報名成功)
---------------------------------------------------
+    const payload = {
+      service_id: EMAILJS_SERVICE_ID,
+      template_id: EMAILJS_TEMPLATE_ID,
+      user_id: EMAILJS_PUBLIC_KEY,
+      template_params: {
+        to_name: order.中文姓名,
+        to_email: order.電子信箱,
+        gender: order.性別,
+        order_id: order.報名編號,
+        trip_name: order.行程名稱,
+        batch_name: order.出發梯次與團號,
+        from_name: '岳野登山社活動報名課'
+      }
+    };
 
-【重要行前提醒事項】
-1. 護照檢查：請確認您的護照效期自出發當日起具備 6 個月以上之有效期限。
-2. 行前說明會：預計將於活動出發前 30～45 天以線上會議舉行，屆時將提前以 Email 與簡訊發送會議連結。
-3. 體能鍛鍊與裝備：建議於出發前保持規律有氧運動習慣；專屬海外登山裝備檢核清單將於說明會前寄達您的信箱。
+    try {
+      const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
 
-若有任何疑問或需變更聯絡資訊，請隨時回覆此信件，或加入岳野官方客服向專員洽詢。
-
-岳野登山社 敬上
-走向世界之巔 · 安全探索群山`;
-
-    return { subject, body };
+      if (response.ok) {
+        alert(`報名成功通知信已順利寄送至：${order.電子信箱}`);
+        setEmailModalOrder(null);
+      } else {
+        const errorText = await response.text();
+        alert(`EmailJS 寄送失敗：${errorText}`);
+      }
+    } catch (err) {
+      console.error(err);
+      alert(`網路錯誤，無法連接 EmailJS：${err.message}`);
+    } finally {
+      setIsSendingEmail(false);
+    }
   };
 
-  // 透過郵件軟體發送
-  const handleSendMail = (order) => {
-    const { subject, body } = getEmailContent(order);
-    const mailtoUrl = `mailto:${order.電子信箱}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-    window.open(mailtoUrl, '_blank');
-  };
-
-  // 複製信件全文
+  // 複製備用文字
   const handleCopyMailText = (order) => {
-    const { subject, body } = getEmailContent(order);
-    const fullText = `收件人：${order.電子信箱}\n信件主旨：${subject}\n\n${body}`;
+    const fullText = `【岳野登山社】活動報名成功暨行前確認通知 - ${order.行程名稱}\n收件人：${order.電子信箱}\n隊員：${order.中文姓名} (${order.性別})\n報名編號：${order.報名編號}\n行程：${order.行程名稱}\n梯次：${order.出發梯次與團號}`;
     navigator.clipboard.writeText(fullText);
     setCopySuccess(true);
     setTimeout(() => setCopySuccess(false), 2000);
@@ -261,7 +276,6 @@ export default function AdminStep() {
                             ? 'bg-green-600 hover:bg-green-700 text-white animate-pulse'
                             : 'bg-gray-100 hover:bg-gray-200 text-gray-600'
                         }`}
-                        title="開啟活動確認信範本"
                       >
                         ✉️ 發送確認信
                       </button>
@@ -281,10 +295,10 @@ export default function AdminStep() {
         </div>
       )}
 
-      {/* --- 活動確認信預覽與發送視窗 (Modal) --- */}
+      {/* --- EmailJS 發送確認彈窗 --- */}
       {emailModalOrder && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl max-w-2xl w-full p-6 space-y-4 shadow-2xl border border-gray-100 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl border border-gray-100">
             <div className="flex items-center justify-between border-b pb-3">
               <div className="flex items-center gap-2">
                 <span className="text-2xl">✉️</span>
@@ -300,50 +314,56 @@ export default function AdminStep() {
               </button>
             </div>
 
-            <div className="space-y-3 text-xs md:text-sm">
-              <div className="bg-gray-50 p-3 rounded-lg border border-gray-200 space-y-1">
-                <div>
-                  <span className="text-gray-500 font-bold">收件隊員：</span>
-                  <span className="font-bold text-gray-800">{emailModalOrder.中文姓名}</span> ({emailModalOrder.電子信箱})
-                </div>
-                <div>
-                  <span className="text-gray-500 font-bold">活動行程：</span>
-                  <span className="text-gray-800">{emailModalOrder.行程名稱} - {emailModalOrder.出發梯次與團號}</span>
-                </div>
-                <div>
-                  <span className="text-gray-500 font-bold">目前審核：</span>
-                  <span className="font-bold text-green-700">{emailModalOrder.報名狀態}</span>
-                </div>
+            <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-gray-500">收件隊員</span>
+                <span className="font-bold text-gray-800">{emailModalOrder.中文姓名} ({emailModalOrder.性別})</span>
               </div>
-
-              <div>
-                <label className="block text-gray-600 font-bold mb-1">信件預覽內容：</label>
-                <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg text-xs font-mono text-gray-700 whitespace-pre-line leading-relaxed max-h-64 overflow-y-auto">
-                  {getEmailContent(emailModalOrder).body}
-                </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">收件信箱</span>
+                <span className="font-mono text-gray-800">{emailModalOrder.電子信箱}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">報名行程</span>
+                <span className="font-medium text-gray-800">{emailModalOrder.行程名稱}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">梯次團號</span>
+                <span className="font-medium text-gray-800">{emailModalOrder.出發梯次與團號}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">報名編號</span>
+                <span className="font-mono font-bold text-green-700">{emailModalOrder.報名編號}</span>
               </div>
             </div>
+
+            <p className="text-xs text-gray-500">
+              點擊發送後，系統將透過 EmailJS 模板帶入上方資訊，並由「岳野登山社活動報名課」名義寄出通知信。
+            </p>
 
             {/* 操作按鈕 */}
             <div className="flex flex-col sm:flex-row gap-2 pt-2 border-t">
               <button
-                onClick={() => handleSendMail(emailModalOrder)}
-                className="flex-1 py-2.5 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg text-sm flex items-center justify-center gap-1.5 shadow-sm transition-colors"
+                onClick={() => handleSendViaEmailJS(emailModalOrder)}
+                disabled={isSendingEmail}
+                className={`flex-1 py-2.5 text-white font-bold rounded-lg text-sm flex items-center justify-center gap-1.5 shadow-sm transition-colors ${
+                  isSendingEmail ? 'bg-gray-400 cursor-wait' : 'bg-green-600 hover:bg-green-700'
+                }`}
               >
                 <span>🚀</span>
-                <span>開啟郵件軟體直接寄出</span>
+                <span>{isSendingEmail ? '發送中...' : '確認無誤，立即透過 EmailJS 發送'}</span>
               </button>
               <button
                 onClick={() => handleCopyMailText(emailModalOrder)}
                 className="py-2.5 px-4 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-lg text-sm transition-colors"
               >
-                {copySuccess ? '✓ 已複製內容！' : '📋 複製信件文字'}
+                {copySuccess ? '✓ 已複製！' : '📋 複製資訊'}
               </button>
               <button
                 onClick={() => setEmailModalOrder(null)}
                 className="py-2.5 px-4 border border-gray-300 hover:bg-gray-50 text-gray-600 font-bold rounded-lg text-sm"
               >
-                關閉
+                取消
               </button>
             </div>
           </div>
