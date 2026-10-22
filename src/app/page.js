@@ -3,6 +3,7 @@ import { useState } from 'react';
 import ConsentStep from '../components/ConsentStep';
 import RegistrationForm from '../components/RegistrationForm';
 import PaymentStep from '../components/PaymentStep';
+import QueryStep from '../components/QueryStep';
 
 export default function Home() {
   // 頁面主模式：'portal' (首頁選單) | 'register' (報名流程) | 'query' (報名查詢)
@@ -62,9 +63,7 @@ export default function Home() {
 
           {/* 按鈕 2：進入報名查詢 */}
           <button
-            onClick={() => {
-              setViewMode('query');
-            }}
+            onClick={() => setViewMode('query')}
             className="w-full py-5 px-6 bg-white hover:bg-gray-50 text-gray-800 border-2 border-gray-200 hover:border-gray-400 rounded-xl transition-all duration-200 text-left flex items-center justify-between group"
           >
             <div>
@@ -83,7 +82,6 @@ export default function Home() {
       {/* 模式二：報名系統流程 */}
       {viewMode === 'register' && (
         <div className="w-full max-w-3xl">
-          {/* 返回大廳按鈕 */}
           <div className="mb-4 text-left">
             <button
               onClick={handleBackToPortal}
@@ -93,7 +91,6 @@ export default function Home() {
             </button>
           </div>
 
-          {/* 步驟進度條 */}
           <div className="mb-6 grid grid-cols-3 gap-2 text-center text-xs md:text-sm font-bold">
             <div className={`py-2 rounded-lg transition-colors ${step >= 1 ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-500'}`}>
               1. 閱讀聲明
@@ -106,7 +103,6 @@ export default function Home() {
             </div>
           </div>
 
-          {/* 報名核心內容 */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 md:p-8">
             {step === 1 && (
               <ConsentStep onAgree={() => {
@@ -135,26 +131,10 @@ export default function Home() {
         </div>
       )}
 
-      {/* 模式三：報名查詢頁面 */}
+      {/* 模式三：報名查詢與管理後台 */}
       {viewMode === 'query' && (
-        <div className="w-full max-w-2xl bg-white rounded-xl shadow-sm border border-gray-100 p-6 md:p-8 text-center space-y-6">
-          <div className="flex items-center justify-between border-b pb-4">
-            <h2 className="text-2xl font-bold text-gray-800">報名進度查詢與匯款回報</h2>
-            <button
-              onClick={handleBackToPortal}
-              className="text-sm text-gray-500 hover:text-green-600 underline"
-            >
-              ← 返回主選單
-            </button>
-          </div>
-
-          <div className="py-8 space-y-3">
-            <div className="text-5xl">🔍</div>
-            <p className="text-gray-600 font-medium">查詢系統準備中</p>
-            <p className="text-sm text-gray-400">
-              稍後我們將在這裡建立「身分證/護照號碼」查詢、訂單狀態顯示，以及填寫「匯款後五碼」的送出功能。
-            </p>
-          </div>
+        <div className="w-full max-w-4xl bg-white rounded-xl shadow-sm border border-gray-100 p-6 md:p-8">
+          <QueryStep onBack={handleBackToPortal} />
         </div>
       )}
     </main>
