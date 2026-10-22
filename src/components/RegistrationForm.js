@@ -86,16 +86,25 @@ export default function RegistrationForm({ onComplete, onBack }) {
     '身分證字號/護照號碼': '',
     聯絡電話: '',
     電子信箱: '',
-    LINE: '', // 👈 新增 LINE 欄位狀態
+    LINE: '',
     通訊地址: '',
     緊急聯絡人姓名: '',
     緊急聯絡人電話: '',
     近一年高海拔健行經歷: '否',
     近三年登山經歷簡述: '',
-    特殊病史或身體狀況: '無'
+    特殊病史或身體狀況: '無',
+    // --- 新增客製化需求狀態 ---
+    市區住宿需求: '單人報名，可以安排同性別住宿雙床房',
+    溫泉住宿需求: '單人報名，請協助分配入住即可',
+    山屋飲食需求: '葷食',
+    溫泉飲食備註: '',
+    裝備租借需求: '無需求'
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // 判斷是否顯示溫泉旅館選項
+  const isHotSpringTrip = formData.行程名稱 === '富士山五日行程' || formData.行程名稱 === '秋季立山三山';
 
   // 選單連動切換
   const handleChange = (e) => {
@@ -131,7 +140,6 @@ export default function RegistrationForm({ onComplete, onBack }) {
     const submitTime = now.toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' });
     const orderId = `YUEYE-${now.getFullYear()}${(now.getMonth() + 1).toString().padStart(2, '0')}${now.getDate().toString().padStart(2, '0')}-${Math.floor(Math.random() * 8999 + 1000)}`;
 
-    // 欄位鍵值精準對應 Google Sheet
     const payload = {
       data: [
         {
@@ -149,7 +157,7 @@ export default function RegistrationForm({ onComplete, onBack }) {
           '身分證字號/護照號碼': formData['身分證字號/護照號碼'],
           聯絡電話: formData.聯絡電話,
           電子信箱: formData.電子信箱,
-          LINE: formData.LINE, // 👈 寫入 LINE 欄位至 SheetDB
+          LINE: formData.LINE,
           通訊地址: formData.通訊地址,
           緊急聯絡人姓名: formData.緊急聯絡人姓名,
           緊急聯絡人電話: formData.緊急聯絡人電話,
@@ -157,7 +165,13 @@ export default function RegistrationForm({ onComplete, onBack }) {
           近三年登山經歷簡述: formData.近三年登山經歷簡述 || '無',
           特殊病史或身體狀況: formData.特殊病史或身體狀況 || '無',
           同意條款紀錄: '已同意《取消政策暨健康聲明》及《登山安全聲明書》',
-          匯款帳號後五碼: ''
+          匯款帳號後五碼: '',
+          // --- 新增客製化需求欄位寫入 ---
+          市區住宿需求: formData.市區住宿需求,
+          溫泉住宿需求: isHotSpringTrip ? formData.溫泉住宿需求 : '無此行程',
+          山屋飲食需求: formData.山屋飲食需求,
+          溫泉飲食備註: isHotSpringTrip ? (formData.溫泉飲食備註 || '無') : '無此行程',
+          裝備租借需求: formData.裝備租借需求
         }
       ]
     };
@@ -339,7 +353,6 @@ export default function RegistrationForm({ onComplete, onBack }) {
           </div>
         </div>
 
-        {/* 👈 新增：LINE 名稱輸入框與通訊地址排在同一層 */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-bold text-gray-700 mb-1">LINE 名稱 (LINE顯示的個人名稱或ID) *</label>
@@ -363,6 +376,87 @@ export default function RegistrationForm({ onComplete, onBack }) {
               className="w-full p-3 border border-gray-300 rounded-lg"
             />
           </div>
+        </div>
+      </div>
+
+      {/* --- 客製化需求 --- */}
+      <div className="space-y-4">
+        <h3 className="font-bold text-gray-800 text-lg border-b pb-2">客製化需求</h3>
+        
+        <div>
+          <label className="block text-sm font-bold text-gray-700 mb-1">1. 住宿部分：東京或松本市區旅館 *</label>
+          <p className="text-xs text-gray-500 mb-2">※ 山屋無法客製化需求</p>
+          <select
+            name="市區住宿需求"
+            value={formData.市區住宿需求}
+            onChange={handleChange}
+            className="w-full p-3 border border-gray-300 rounded-lg bg-white"
+          >
+            <option value="單人報名，可以安排同性別住宿雙床房">單人報名，可以安排同性別住宿雙床房</option>
+            <option value="單人報名，請安排單獨入住 (每晚NTD+2000)">單人報名，請安排單獨入住 (每晚NTD+2000)</option>
+            <option value="雙人報名，請安排一大床房">雙人報名，請安排一大床房</option>
+            <option value="雙人報名，請安排雙床房">雙人報名，請安排雙床房</option>
+          </select>
+        </div>
+
+        {/* 只有特定行程才顯示溫泉區塊 */}
+        {isHotSpringTrip && (
+          <div className="p-4 bg-orange-50 border border-orange-100 rounded-xl space-y-4">
+            <div>
+              <label className="block text-sm font-bold text-gray-700 mb-1">2. 溫泉旅館：河口湖溫泉或高山溫泉 *</label>
+              <p className="text-xs text-gray-500 mb-2">※ 僅富士山5日或立山須選。一般安排3~4人入住和式房，客製需求請洽客服安排</p>
+              <select
+                name="溫泉住宿需求"
+                value={formData.溫泉住宿需求}
+                onChange={handleChange}
+                className="w-full p-3 border border-gray-300 rounded-lg bg-white"
+              >
+                <option value="單人報名，請協助分配入住即可">單人報名，請協助分配入住即可</option>
+                <option value="多人報名，請協助分配入住即可">多人報名，請協助分配入住即可</option>
+                <option value="多人報名，請安排特定人數入住">多人報名，請安排特定人數入住</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-bold text-gray-700 mb-1">溫泉旅館餐食備註</label>
+              <p className="text-xs text-gray-500 mb-2">※ 例如：不吃牛/生食/豬肉等等，無法客製化太細項請見諒</p>
+              <input
+                type="text"
+                name="溫泉飲食備註"
+                value={formData.溫泉飲食備註}
+                onChange={handleChange}
+                placeholder="若無特殊需求請留白"
+                className="w-full p-3 border border-gray-300 rounded-lg"
+              />
+            </div>
+          </div>
+        )}
+
+        <div>
+          <label className="block text-sm font-bold text-gray-700 mb-1">3. 飲食需求：山屋供應 *</label>
+          <p className="text-xs text-gray-500 mb-2">※ 山屋僅供應基礎素食或葷食，無法做額外客製化</p>
+          <select
+            name="山屋飲食需求"
+            value={formData.山屋飲食需求}
+            onChange={handleChange}
+            className="w-full p-3 border border-gray-300 rounded-lg bg-white"
+          >
+            <option value="葷食">葷食</option>
+            <option value="素食">素食</option>
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-bold text-gray-700 mb-1">4. 登山裝備租借需求 *</label>
+          <p className="text-xs text-gray-500 mb-2">※ 確定成團後會另外提供系統供詳細裝備登記</p>
+          <select
+            name="裝備租借需求"
+            value={formData.裝備租借需求}
+            onChange={handleChange}
+            className="w-full p-3 border border-gray-300 rounded-lg bg-white"
+          >
+            <option value="無需求">無需求</option>
+            <option value="有需求">有需求</option>
+          </select>
         </div>
       </div>
 
