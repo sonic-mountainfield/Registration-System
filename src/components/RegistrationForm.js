@@ -141,7 +141,7 @@ export default function RegistrationForm({ onComplete, onBack }) {
     };
 
     try {
-      const response = await fetch('https://sheetdb.io/api/v1/rzyq1bdriv1u0', {
+      const response = await fetch('https://sheetdb.io/api/v1/rzyq1bdriv1u0?sheet=Registration', {
         method: 'POST',
         headers: {
           'Accept': 'application/json',
