@@ -55,7 +55,7 @@ const BATCH_OPTIONS = {
     '[T3] 10月7日(四) ~ 10月11日(一)'
   ],
   '上高地涸澤賞楓': [
-    '[H4] 10月1日(五) ~ 10月5日(二)',
+    '[H4] 10月1日(五) ~ 10月5日(二)'
   ],
   '日本百名山系列_秋季安達太良&磐梯山': [
     '[F1] 10月15日 ~ 10月19日'
@@ -86,6 +86,7 @@ export default function RegistrationForm({ onComplete, onBack }) {
     '身分證字號/護照號碼': '',
     聯絡電話: '',
     電子信箱: '',
+    LINE: '', // 👈 新增 LINE 欄位狀態
     通訊地址: '',
     緊急聯絡人姓名: '',
     緊急聯絡人電話: '',
@@ -130,7 +131,7 @@ export default function RegistrationForm({ onComplete, onBack }) {
     const submitTime = now.toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' });
     const orderId = `YUEYE-${now.getFullYear()}${(now.getMonth() + 1).toString().padStart(2, '0')}${now.getDate().toString().padStart(2, '0')}-${Math.floor(Math.random() * 8999 + 1000)}`;
 
-    // 欄位鍵值精準對應 Google Sheet (A1~V1)
+    // 欄位鍵值精準對應 Google Sheet
     const payload = {
       data: [
         {
@@ -148,6 +149,7 @@ export default function RegistrationForm({ onComplete, onBack }) {
           '身分證字號/護照號碼': formData['身分證字號/護照號碼'],
           聯絡電話: formData.聯絡電話,
           電子信箱: formData.電子信箱,
+          LINE: formData.LINE, // 👈 寫入 LINE 欄位至 SheetDB
           通訊地址: formData.通訊地址,
           緊急聯絡人姓名: formData.緊急聯絡人姓名,
           緊急聯絡人電話: formData.緊急聯絡人電話,
@@ -247,6 +249,7 @@ export default function RegistrationForm({ onComplete, onBack }) {
       {/* --- 個人基本資料 --- */}
       <div className="space-y-4">
         <h3 className="font-bold text-gray-800 text-lg border-b pb-2">個人基本資料</h3>
+        
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className="block text-sm font-bold text-gray-700 mb-1">中文姓名 *</label>
@@ -336,22 +339,37 @@ export default function RegistrationForm({ onComplete, onBack }) {
           </div>
         </div>
 
-        <div>
-          <label className="block text-sm font-bold text-gray-700 mb-1">通訊地址 *</label>
-          <input
-            type="text"
-            name="通訊地址"
-            required
-            onChange={handleChange}
-            placeholder="用於寄送行程物資或登頂證明"
-            className="w-full p-3 border border-gray-300 rounded-lg"
-          />
+        {/* 👈 新增：LINE 名稱輸入框與通訊地址排在同一層 */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-bold text-gray-700 mb-1">LINE 名稱 (LINE顯示的個人名稱或ID) *</label>
+            <input
+              type="text"
+              name="LINE"
+              required
+              onChange={handleChange}
+              placeholder="例如：王小明 或 mingsome123"
+              className="w-full p-3 border border-gray-300 rounded-lg"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-bold text-gray-700 mb-1">通訊地址 *</label>
+            <input
+              type="text"
+              name="通訊地址"
+              required
+              onChange={handleChange}
+              placeholder="用於寄送行程物資或登頂證明"
+              className="w-full p-3 border border-gray-300 rounded-lg"
+            />
+          </div>
         </div>
       </div>
 
       {/* --- 緊急聯絡人與經歷 --- */}
       <div className="space-y-4">
         <h3 className="font-bold text-gray-800 text-lg border-b pb-2">緊急聯絡人與登山經歷</h3>
+        
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-bold text-gray-700 mb-1">緊急聯絡人姓名 *</label>
