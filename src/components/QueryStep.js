@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import AdminStep from './AdminStep';
 
-const SHEETDB_URL = '[https://sheetdb.io/api/v1/rzyq1bdriv1u0](https://sheetdb.io/api/v1/rzyq1bdriv1u0)';
+const SHEETDB_URL = 'https://sheetdb.io/api/v1/rzyq1bdriv1u0';
 const SHEET_NAME = 'Registration';
 
 export default function QueryStep({ onBack }) {
@@ -20,7 +20,7 @@ export default function QueryStep({ onBack }) {
   const [remitCode, setRemitCode] = useState('');
   const [isUpdatingRemit, setIsUpdatingRemit] = useState(false);
 
-  // 隊員查詢報名紀錄
+  // 隊員查詢報名紀錄 (具備 404 自動退回預設分頁防呆機制)
   const handleUserQuery = async (e) => {
     if (e) e.preventDefault();
     setUserLoading(true);
@@ -30,7 +30,12 @@ export default function QueryStep({ onBack }) {
       const trimmedId = userId.trim().toUpperCase();
       const trimmedName = userName.trim();
 
-      const response = await fetch(`${SHEETDB_URL}?sheet=${SHEET_NAME}`);
+      // 先嘗試抓取指定分頁，若 404 則自動退回抓取預設第一張工作表
+      let response = await fetch(`${SHEETDB_URL}?sheet=${SHEET_NAME}`);
+      if (response.status === 404) {
+        response = await fetch(SHEETDB_URL);
+      }
+
       if (!response.ok) {
         const errData = await response.json().catch(() => ({}));
         throw new Error(errData.error || `HTTP ${response.status}`);
@@ -69,7 +74,7 @@ export default function QueryStep({ onBack }) {
       }
     } catch (err) {
       console.error('Query Error:', err);
-      setUserError(`查詢失敗 (${err.message})。若提示 401，請確認試算表共用權限。`);
+      setUserError(`查詢失敗 (${err.message})。請確認試算表分頁設定與編輯權限。`);
     } finally {
       setUserLoading(false);
     }
@@ -91,9 +96,25 @@ export default function QueryStep({ onBack }) {
 
     setIsUpdatingRemit(true);
     try {
-      const response = await fetch(
-        `${SHEETDB_URL}/報名編號/${encodeURIComponent(selectedOrder.報名編號)}?sheet=${SHEET_NAME}`,
-        {
+      // 嘗試更新指定分頁，若 404 則更新預設分頁
+      let updateUrl = `${SHEETDB_URL}/報名編號/${encodeURIComponent(selectedOrder.報名編號)}?sheet=${SHEET_NAME}`;
+      let response = await fetch(updateUrl, {
+        method: 'PATCH',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          data: {
+            匯款帳號後五碼: remitCode.trim(),
+            報名狀態: '已回報待對帳'
+          }
+        })
+      });
+
+      if (response.status === 404) {
+        updateUrl = `${SHEETDB_URL}/報名編號/${encodeURIComponent(selectedOrder.報名編號)}`;
+        response = await fetch(updateUrl, {
           method: 'PATCH',
           headers: {
             'Accept': 'application/json',
@@ -105,8 +126,8 @@ export default function QueryStep({ onBack }) {
               報名狀態: '已回報待對帳'
             }
           })
-        }
-      );
+        });
+      }
 
       const res = await response.json();
       if (response.ok && res.updated === 1) {
@@ -442,7 +463,7 @@ export default function QueryStep({ onBack }) {
                     </p>
                     <div>
                       <a
-                        href={`[https://passport-upload-sys.vercel.app/?orderId=$](https://passport-upload-sys.vercel.app/?orderId=$){encodeURIComponent(selectedOrder.報名編號)}&id=${encodeURIComponent(selectedOrder['身分證字號/護照號碼'])}&name=${encodeURIComponent(selectedOrder.中文姓名)}`}
+                        href={`https://passport-upload-sys.vercel.app/?orderId=${encodeURIComponent(selectedOrder.報名編號)}&id=${encodeURIComponent(selectedOrder['身分證字號/護照號碼'])}&name=${encodeURIComponent(selectedOrder.中文姓名)}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-1.5 text-xs text-green-800 hover:text-green-900 font-bold underline"
@@ -458,7 +479,7 @@ export default function QueryStep({ onBack }) {
                     </p>
                     <div className="pt-1">
                       <a
-                        href={`[https://passport-upload-sys.vercel.app/?orderId=$](https://passport-upload-sys.vercel.app/?orderId=$){encodeURIComponent(selectedOrder.報名編號)}&id=${encodeURIComponent(selectedOrder['身分證字號/護照號碼'])}&name=${encodeURIComponent(selectedOrder.中文姓名)}`}
+                        href={`https://passport-upload-sys.vercel.app/?orderId=${encodeURIComponent(selectedOrder.報名編號)}&id=${encodeURIComponent(selectedOrder['身分證字號/護照號碼'])}&name=${encodeURIComponent(selectedOrder.中文姓名)}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-lg text-sm shadow-sm transition-colors group"
@@ -524,7 +545,7 @@ export default function QueryStep({ onBack }) {
 
       {/* ================= 模式 2：獨立管理員後台組件 ================= */}
       {activeTab === 'admin' && (
-        <AdminStep/>
+        <AdminStep />
       )}
     </div>
   );
