@@ -21,7 +21,7 @@ const TRIP_OPTIONS = {
   ]
 };
 
-// 2027 各行程完整梯次對照表
+// 2027 各行程出發梯次對照表
 const BATCH_OPTIONS = {
   '富士山三日行程': [
     '[S1] 7月8日(四) ~ 7月10日(六)',
@@ -92,7 +92,7 @@ export default function RegistrationForm({ onComplete, onBack }) {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // 選單切換自動連動
+  // 選單連動切換
   const handleChange = (e) => {
     const { name, value } = e.target;
 
@@ -117,7 +117,7 @@ export default function RegistrationForm({ onComplete, onBack }) {
     }
   };
 
-  // 表單送出至 SheetDB
+  // 送出報名資料至 SheetDB
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -126,6 +126,7 @@ export default function RegistrationForm({ onComplete, onBack }) {
     const submitTime = now.toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' });
     const orderId = `YUEYE-${now.getFullYear()}${(now.getMonth() + 1).toString().padStart(2, '0')}${now.getDate().toString().padStart(2, '0')}-${Math.floor(Math.random() * 8999 + 1000)}`;
 
+    // 欄位鍵值精準對應 Google Sheet (A1~V1)
     const payload = {
       data: [
         {
@@ -133,7 +134,22 @@ export default function RegistrationForm({ onComplete, onBack }) {
           報名時間: submitTime,
           報名編號: orderId,
           報名狀態: '待繳費',
-          ...formData,
+          行程區域: formData.行程區域,
+          行程名稱: formData.行程名稱,
+          出發梯次與團號: formData.出發梯次與團號,
+          中文姓名: formData.中文姓名,
+          國籍: formData.國籍,
+          性別: formData.性別,
+          出生年月日: formData.出生年月日,
+          '身分證字號/護照號碼': formData['身分證字號/護照號碼'],
+          聯絡電話: formData.聯絡電話,
+          電子信箱: formData.電子信箱,
+          通訊地址: formData.通訊地址,
+          緊急聯絡人姓名: formData.緊急聯絡人姓名,
+          緊急聯絡人電話: formData.緊急聯絡人電話,
+          近一年高海拔健行經歷: formData.近一年高海拔健行經歷,
+          近三年登山經歷簡述: formData.近三年登山經歷簡述 || '無',
+          特殊病史或身體狀況: formData.特殊病史或身體狀況 || '無',
           同意條款紀錄: '已同意《取消政策暨健康聲明》及《登山安全聲明書》',
           匯款帳號後五碼: ''
         }
@@ -152,14 +168,15 @@ export default function RegistrationForm({ onComplete, onBack }) {
 
       const result = await response.json();
 
-      if (result.created === 1) {
+      if (response.ok && (result.created === 1 || result.created)) {
         onComplete({ orderId, ...formData });
       } else {
-        alert('報名資料送出失敗，請再試一次或聯繫客服。');
+        const errorDetail = result.error || JSON.stringify(result);
+        alert(`報名送出失敗 (${response.status})：\n${errorDetail}`);
       }
     } catch (error) {
       console.error('Submit Error:', error);
-      alert('網路連線異常，請稍後再試。');
+      alert(`網路連線異常：${error.message}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -174,7 +191,7 @@ export default function RegistrationForm({ onComplete, onBack }) {
         </button>
       </div>
 
-      {/* --- 行程三層連動選擇區 --- */}
+      {/* --- 行程選擇 --- */}
       <div className="bg-green-50/50 p-4 rounded-xl border border-green-100 space-y-4">
         <h3 className="font-bold text-green-900 text-lg">選擇報名行程</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -223,7 +240,7 @@ export default function RegistrationForm({ onComplete, onBack }) {
         </div>
       </div>
 
-      {/* --- 基本個人資料區 --- */}
+      {/* --- 個人基本資料 --- */}
       <div className="space-y-4">
         <h3 className="font-bold text-gray-800 text-lg border-b pb-2">個人基本資料</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -284,7 +301,7 @@ export default function RegistrationForm({ onComplete, onBack }) {
               name="身分證字號/護照號碼"
               required
               onChange={handleChange}
-              placeholder="海外身份請填護照號碼"
+              placeholder="海外身分請填護照號碼"
               className="w-full p-3 border border-gray-300 rounded-lg"
             />
           </div>
@@ -322,7 +339,7 @@ export default function RegistrationForm({ onComplete, onBack }) {
             name="通訊地址"
             required
             onChange={handleChange}
-            placeholder="用於寄送攻頂紀念證書"
+            placeholder="用於寄送行程物資或登頂證明"
             className="w-full p-3 border border-gray-300 rounded-lg"
           />
         </div>
@@ -384,7 +401,7 @@ export default function RegistrationForm({ onComplete, onBack }) {
             type="text"
             name="特殊病史或身體狀況"
             onChange={handleChange}
-            placeholder="如過敏、心血管狀況、氣喘等（若無請填無）"
+            placeholder="如過敏、氣喘、心血管疾病等（若無請填無）"
             className="w-full p-3 border border-gray-300 rounded-lg"
           />
         </div>
