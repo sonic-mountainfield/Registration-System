@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 
-const SHEETDB_URL = '[https://sheetdb.io/api/v1/rzyq1bdriv1u0](https://sheetdb.io/api/v1/rzyq1bdriv1u0)';
+const SHEETDB_URL = 'https://sheetdb.io/api/v1/rzyq1bdriv1u0';
 const SHEET_NAME = 'Registration';
 const ADMIN_PASSWORD = 'admin'; // 管理員登入密碼
 
@@ -27,7 +27,7 @@ export default function QueryStep({ onBack }) {
   const [adminLoading, setAdminLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
-  // 1. 隊員查詢報名紀錄
+  // 1. 隊員查詢報名紀錄 (前端安全過濾，避開斜線 / 網址解析錯誤)
   const handleUserQuery = async (e) => {
     e.preventDefault();
     setUserLoading(true);
@@ -36,27 +36,46 @@ export default function QueryStep({ onBack }) {
     setSelectedOrder(null);
 
     try {
-      const trimmedId = userId.trim();
+      const trimmedId = userId.trim().toUpperCase();
       const trimmedName = userName.trim();
 
-      const response = await fetch(
-        `${SHEETDB_URL}/search?sheet=${SHEET_NAME}&身分證字號/護照號碼=${encodeURIComponent(trimmedId)}`
-      );
+      const response = await fetch(`${SHEETDB_URL}?sheet=${SHEET_NAME}`);
+      
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.error || `HTTP ${response.status}`);
+      }
+
       const data = await response.json();
 
-      if (Array.isArray(data) && data.length > 0) {
-        const matched = data.filter(order => order.中文姓名 && order.中文姓名.trim() === trimmedName);
+      if (Array.isArray(data)) {
+        // 先篩選身分證字號 / 護照號碼（不分大小寫）
+        const idMatched = data.filter(order => {
+          const val = order['身分證字號/護照號碼'];
+          return val && val.toString().trim().toUpperCase() === trimmedId;
+        });
+
+        if (idMatched.length === 0) {
+          setUserError('查無此身分證字號/護照號碼的報名紀錄。');
+          return;
+        }
+
+        // 再比對中文姓名
+        const matched = idMatched.filter(order => 
+          order.中文姓名 && order.中文姓名.toString().trim() === trimmedName
+        );
+
         if (matched.length > 0) {
           setUserOrders(matched);
         } else {
           setUserError('查有此證號，但與所輸入的中文姓名不相符，請確認後重試。');
         }
       } else {
-        setUserError('查無此身分證字號/護照號碼的報名紀錄。');
+        setUserError('資料庫回傳格式異常，請聯繫管理員。');
       }
     } catch (err) {
-      console.error(err);
-      setUserError('查詢連線異常，請稍後再試。');
+      console.error('Query Error:', err);
+      setUserError(`查詢失敗 (${err.message})。若提示 401，請確認 Google Sheet 共用設定已設為「知道連結的任何人皆可編輯」。`);
     } finally {
       setUserLoading(false);
     }
@@ -96,7 +115,7 @@ export default function QueryStep({ onBack }) {
       );
 
       const res = await response.json();
-      if (res.updated === 1) {
+      if (response.ok && res.updated === 1) {
         alert('匯款帳號後五碼已成功填寫！等待審查完成，會發送活動報名成功通知信件。');
 
         const updated = {
@@ -107,7 +126,7 @@ export default function QueryStep({ onBack }) {
         setSelectedOrder(updated);
         setUserOrders(prev => prev.map(o => o.報名編號 === updated.報名編號 ? updated : o));
       } else {
-        alert('資料更新失敗，請聯繫客服人員。');
+        alert(`資料更新失敗：${res.error || '請聯繫客服人員'}`);
       }
     } catch (err) {
       console.error(err);
@@ -132,13 +151,17 @@ export default function QueryStep({ onBack }) {
     setAdminLoading(true);
     try {
       const response = await fetch(`${SHEETDB_URL}?sheet=${SHEET_NAME}`);
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.error || `HTTP ${response.status}`);
+      }
       const data = await response.json();
       if (Array.isArray(data)) {
         setAdminOrders(data);
       }
     } catch (err) {
       console.error(err);
-      alert('無法載入後台資料');
+      alert(`無法載入後台資料：${err.message}`);
     } finally {
       setAdminLoading(false);
     }
@@ -161,7 +184,7 @@ export default function QueryStep({ onBack }) {
       );
 
       const res = await response.json();
-      if (res.updated === 1) {
+      if (response.ok && res.updated === 1) {
         setAdminOrders(prev => prev.map(o => o.報名編號 === orderId ? { ...o, 報名狀態: newStatus } : o));
       } else {
         alert('狀態修改失敗');
@@ -189,10 +212,10 @@ export default function QueryStep({ onBack }) {
   const filteredOrders = adminOrders.filter(item => {
     const term = searchTerm.toLowerCase();
     return (
-      (item.中文姓名 && item.中文姓名.toLowerCase().includes(term)) ||
-      (item.報名編號 && item.報名編號.toLowerCase().includes(term)) ||
-      (item.行程名稱 && item.行程名稱.toLowerCase().includes(term)) ||
-      (item['身分證字號/護照號碼'] && item['身分證字號/護照號碼'].toLowerCase().includes(term))
+      (item.中文姓名 && item.中文姓名.toString().toLowerCase().includes(term)) ||
+      (item.報名編號 && item.報名編號.toString().toLowerCase().includes(term)) ||
+      (item.行程名稱 && item.行程名稱.toString().toLowerCase().includes(term)) ||
+      (item['身分證字號/護照號碼'] && item['身分證字號/護照號碼'].toString().toLowerCase().includes(term))
     );
   });
 
@@ -269,7 +292,7 @@ export default function QueryStep({ onBack }) {
                   type="submit"
                   disabled={userLoading}
                   className={`w-full py-3.5 font-bold text-white rounded-lg transition-colors ${
-                    userLoading ? 'bg-gray-400' : 'bg-green-600 hover:bg-green-700 shadow-sm'
+                    userLoading ? 'bg-gray-400 cursor-wait' : 'bg-green-600 hover:bg-green-700 shadow-sm'
                   }`}
                 >
                   {userLoading ? '正在查詢報名紀錄...' : '查詢報名列表'}
