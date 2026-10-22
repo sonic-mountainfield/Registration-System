@@ -90,7 +90,7 @@ export default function AdminStep() {
     return item.行程名稱 === selectedTripFilter;
   });
 
-  // 透過 EmailJS REST API 寄送確認信
+  // 透過 EmailJS REST API 寄送確認信並自動更新狀態
   const handleSendViaEmailJS = async (order) => {
     if (!order.電子信箱) {
       alert('該隊員未填寫電子信箱，無法發送！');
@@ -124,7 +124,8 @@ export default function AdminStep() {
       });
 
       if (response.ok) {
-        alert(`報名成功通知信已順利寄送至：${order.電子信箱}`);
+        await handleAdminStatusChange(order.報名編號, '已完成確認信件發送');
+        alert(`報名成功通知信已順利寄送至：${order.電子信箱}\n狀態已自動更新為【已完成確認信件發送】！`);
         setEmailModalOrder(null);
       } else {
         const errorText = await response.text();
@@ -204,11 +205,14 @@ export default function AdminStep() {
             </select>
           </div>
 
+          {/* 重新整理按鈕 */}
           <button
             onClick={fetchAdminData}
-            className="px-3 py-2 bg-white hover:bg-gray-100 border border-gray-300 rounded-lg text-sm font-medium transition-colors"
+            disabled={adminLoading}
+            className="flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-gray-100 border border-gray-300 rounded-lg text-sm font-medium transition-colors shadow-sm disabled:opacity-50"
           >
-            🔄 重新整理
+            <span className={adminLoading ? 'animate-spin' : ''}>🔄</span>
+            <span>{adminLoading ? '更新中...' : '重新整理'}</span>
           </button>
         </div>
       </div>
@@ -232,19 +236,28 @@ export default function AdminStep() {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {filteredOrders.map((order, idx) => {
+                const isCancelled = order.報名狀態 === '已取消';
+                const isSent = order.報名狀態 === '已完成確認信件發送';
                 const isConfirmed = order.報名狀態 === '已確認';
+
                 return (
-                  <tr key={order.報名編號 || idx} className="hover:bg-gray-50">
+                  <tr key={order.報名編號 || idx} className={`hover:bg-gray-50 ${isCancelled ? 'bg-red-50/30' : ''}`}>
                     <td className="p-3 font-mono">
-                      <div className="font-bold text-gray-800">{order.報名編號}</div>
+                      <div className={`font-bold ${isCancelled ? 'text-red-700 line-through' : 'text-gray-800'}`}>
+                        {order.報名編號}
+                      </div>
                       <div className="text-[10px] text-gray-400">{order.報名時間}</div>
                     </td>
                     <td className="p-3">
-                      <div className="font-bold text-gray-900">{order.中文姓名} ({order.性別})</div>
+                      <div className={`font-bold ${isCancelled ? 'text-red-700' : 'text-gray-900'}`}>
+                        {order.中文姓名} ({order.性別})
+                      </div>
                       <div className="text-gray-400 font-mono text-[11px]">{order['身分證字號/護照號碼']}</div>
                     </td>
                     <td className="p-3">
-                      <div className="font-medium text-gray-800">{order.行程名稱}</div>
+                      <div className={`font-medium ${isCancelled ? 'text-red-700' : 'text-gray-800'}`}>
+                        {order.行程名稱}
+                      </div>
                       <div className="text-gray-500 text-[11px]">{order.出發梯次與團號}</div>
                     </td>
                     <td className="p-3 font-mono">
@@ -258,26 +271,38 @@ export default function AdminStep() {
                       <select
                         value={order.報名狀態 || '待繳費'}
                         onChange={(e) => handleAdminStatusChange(order.報名編號, e.target.value)}
-                        className={`p-1.5 border rounded font-medium text-xs bg-white ${
-                          isConfirmed ? 'border-green-500 text-green-800 bg-green-50 font-bold' : 'border-gray-300'
+                        className={`p-1.5 border rounded text-xs bg-white ${
+                          isCancelled
+                            ? 'border-red-400 text-red-600 bg-red-50 font-bold'
+                            : isSent
+                            ? 'border-blue-500 text-blue-800 bg-blue-50 font-bold'
+                            : isConfirmed
+                            ? 'border-green-500 text-green-800 bg-green-50 font-bold'
+                            : 'border-gray-300 text-gray-700'
                         }`}
                       >
                         <option value="待繳費">待繳費</option>
                         <option value="已回報待對帳">已回報待對帳</option>
                         <option value="已確認">已確認 (成功)</option>
-                        <option value="已取消">已取消</option>
+                        <option value="已完成確認信件發送">已完成確認信件發送</option>
+                        <option value="已取消" className="text-red-600 font-bold">已取消</option>
                       </select>
                     </td>
                     <td className="p-3 text-center">
                       <button
                         onClick={() => setEmailModalOrder(order)}
+                        disabled={isCancelled}
                         className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm ${
-                          isConfirmed
+                          isCancelled
+                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                            : isSent
+                            ? 'bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200'
+                            : isConfirmed
                             ? 'bg-green-600 hover:bg-green-700 text-white animate-pulse'
                             : 'bg-gray-100 hover:bg-gray-200 text-gray-600'
                         }`}
                       >
-                        ✉️ 發送確認信
+                        {isCancelled ? '✕ 已取消' : isSent ? '✓ 已寄出 (可重發)' : '✉️ 發送確認信'}
                       </button>
                     </td>
                   </tr>
@@ -332,13 +357,13 @@ export default function AdminStep() {
                 <span className="font-medium text-gray-800">{emailModalOrder.出發梯次與團號}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500">報名編號</span>
-                <span className="font-mono font-bold text-green-700">{emailModalOrder.報名編號}</span>
+                <span className="text-gray-500">目前狀態</span>
+                <span className="font-mono font-bold text-blue-700">{emailModalOrder.報名狀態 || '待繳費'}</span>
               </div>
             </div>
 
             <p className="text-xs text-gray-500">
-              點擊發送後，系統將透過 EmailJS 模板帶入上方資訊，並由「岳野登山社活動報名課」名義寄出通知信。
+              點擊發送後，系統將透過 EmailJS 寄送通知信，並**自動將狀態標記為【已完成確認信件發送】**。
             </p>
 
             {/* 操作按鈕 */}
@@ -351,7 +376,7 @@ export default function AdminStep() {
                 }`}
               >
                 <span>🚀</span>
-                <span>{isSendingEmail ? '發送中...' : '確認無誤，立即透過 EmailJS 發送'}</span>
+                <span>{isSendingEmail ? '發送並更新狀態中...' : '確認無誤，立即透過 EmailJS 發送'}</span>
               </button>
               <button
                 onClick={() => handleCopyMailText(emailModalOrder)}
