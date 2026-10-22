@@ -1,8 +1,12 @@
+請打開 **`src/components/QueryStep.js`**，將整份檔案內容刪除，替換為以下已完整整合 `Registration` 工作表與所有業務規則的完整程式碼：
+
+```javascript
 'use client';
 import { useState } from 'react';
 
 const SHEETDB_URL = 'https://sheetdb.io/api/v1/rzyq1bdriv1u0';
-const ADMIN_PASSWORD = 'admin'; // 管理員預設密碼
+const SHEET_NAME = 'Registration';
+const ADMIN_PASSWORD = 'admin'; // 管理員登入密碼
 
 export default function QueryStep({ onBack }) {
   const [activeTab, setActiveTab] = useState('user'); // 'user' | 'admin'
@@ -11,15 +15,15 @@ export default function QueryStep({ onBack }) {
   const [userId, setUserId] = useState('');
   const [userName, setUserName] = useState('');
   const [userOrders, setUserOrders] = useState(null);
-  const [selectedOrder, setSelectedOrder] = useState(null); // 當前點選展開的行程
+  const [selectedOrder, setSelectedOrder] = useState(null);
   const [userLoading, setUserLoading] = useState(false);
   const [userError, setUserError] = useState('');
-  
+
   // 匯款後五碼輸入與更新狀態
   const [remitCode, setRemitCode] = useState('');
   const [isUpdatingRemit, setIsUpdatingRemit] = useState(false);
 
-  // --- 管理員狀態 ---
+  // --- 管理員後台狀態 ---
   const [adminAuthed, setAdminAuthed] = useState(false);
   const [adminPasswordInput, setAdminPasswordInput] = useState('');
   const [adminOrders, setAdminOrders] = useState([]);
@@ -38,7 +42,9 @@ export default function QueryStep({ onBack }) {
       const trimmedId = userId.trim();
       const trimmedName = userName.trim();
 
-      const response = await fetch(`${SHEETDB_URL}/search?身分證字號/護照號碼=${encodeURIComponent(trimmedId)}`);
+      const response = await fetch(
+        `${SHEETDB_URL}/search?sheet=${SHEET_NAME}&身分證字號/護照號碼=${encodeURIComponent(trimmedId)}`
+      );
       const data = await response.json();
 
       if (Array.isArray(data) && data.length > 0) {
@@ -46,7 +52,7 @@ export default function QueryStep({ onBack }) {
         if (matched.length > 0) {
           setUserOrders(matched);
         } else {
-          setUserError('查有此證號，但與所輸入的中文姓名不相符，請核對後重試。');
+          setUserError('查有此證號，但與所輸入的中文姓名不相符，請確認後重試。');
         }
       } else {
         setUserError('查無此身分證字號/護照號碼的報名紀錄。');
@@ -75,26 +81,32 @@ export default function QueryStep({ onBack }) {
 
     setIsUpdatingRemit(true);
     try {
-      const response = await fetch(`${SHEETDB_URL}/報名編號/${encodeURIComponent(selectedOrder.報名編號)}`, {
-        method: 'PATCH',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          data: {
-            匯款帳號後五碼: remitCode.trim(),
-            報名狀態: '已回報待對帳'
-          }
-        })
-      });
+      const response = await fetch(
+        `${SHEETDB_URL}/報名編號/${encodeURIComponent(selectedOrder.報名編號)}?sheet=${SHEET_NAME}`,
+        {
+          method: 'PATCH',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            data: {
+              匯款帳號後五碼: remitCode.trim(),
+              報名狀態: '已回報待對帳'
+            }
+          })
+        }
+      );
 
       const res = await response.json();
       if (res.updated === 1) {
-        alert('匯款帳號後五碼已成功填寫！我們將於審查對帳完成後發送確認信件。');
-        
-        // 更新當前選中項與列表狀態
-        const updated = { ...selectedOrder, 匯款帳號後五碼: remitCode.trim(), 報名狀態: '已回報待對帳' };
+        alert('匯款帳號後五碼已成功填寫！等待審查完成，會發送活動報名成功通知信件。');
+
+        const updated = {
+          ...selectedOrder,
+          匯款帳號後五碼: remitCode.trim(),
+          報名狀態: '已回報待對帳'
+        };
         setSelectedOrder(updated);
         setUserOrders(prev => prev.map(o => o.報名編號 === updated.報名編號 ? updated : o));
       } else {
@@ -108,7 +120,7 @@ export default function QueryStep({ onBack }) {
     }
   };
 
-  // 2. 管理員驗證與功能
+  // 2. 管理員驗證與資料載入
   const handleAdminLogin = async (e) => {
     e.preventDefault();
     if (adminPasswordInput !== ADMIN_PASSWORD) {
@@ -122,7 +134,7 @@ export default function QueryStep({ onBack }) {
   const fetchAdminData = async () => {
     setAdminLoading(true);
     try {
-      const response = await fetch(SHEETDB_URL);
+      const response = await fetch(`${SHEETDB_URL}?sheet=${SHEET_NAME}`);
       const data = await response.json();
       if (Array.isArray(data)) {
         setAdminOrders(data);
@@ -137,30 +149,33 @@ export default function QueryStep({ onBack }) {
 
   const handleAdminStatusChange = async (orderId, newStatus) => {
     try {
-      const response = await fetch(`${SHEETDB_URL}/報名編號/${encodeURIComponent(orderId)}`, {
-        method: 'PATCH',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          data: { 報名狀態: newStatus }
-        })
-      });
+      const response = await fetch(
+        `${SHEETDB_URL}/報名編號/${encodeURIComponent(orderId)}?sheet=${SHEET_NAME}`,
+        {
+          method: 'PATCH',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            data: { 報名狀態: newStatus }
+          })
+        }
+      );
 
       const res = await response.json();
       if (res.updated === 1) {
         setAdminOrders(prev => prev.map(o => o.報名編號 === orderId ? { ...o, 報名狀態: newStatus } : o));
       } else {
-        alert('修改失敗');
+        alert('狀態修改失敗');
       }
     } catch (err) {
       console.error(err);
-      alert('網路錯誤');
+      alert('網路連線異常');
     }
   };
 
-  // 狀態徽章
+  // 狀態徽章樣式
   const getStatusBadge = (status) => {
     switch (status) {
       case '已確認':
@@ -186,7 +201,7 @@ export default function QueryStep({ onBack }) {
 
   return (
     <div className="w-full text-left space-y-6">
-      {/* 頂部切換與返回 */}
+      {/* 頂部切換與返回按鈕 */}
       <div className="flex items-center justify-between border-b pb-4">
         <div className="flex gap-2">
           <button
@@ -220,13 +235,12 @@ export default function QueryStep({ onBack }) {
       {/* ================= 模式 1：隊員查詢 ================= */}
       {activeTab === 'user' && (
         <div className="space-y-6">
-          {/* 未點選單一活動時，顯示「查詢表單」或「報名活動列表」 */}
           {!selectedOrder ? (
             <>
-              {/* 身分驗證輸入框 */}
+              {/* 身分驗證輸入區 */}
               <form onSubmit={handleUserQuery} className="bg-gray-50 p-6 rounded-xl border border-gray-200 space-y-4">
-                <h3 className="text-lg font-bold text-gray-800">隊員登入與行程查詢</h3>
-                <p className="text-xs text-gray-500">輸入報名時填寫的身分證字號與中文姓名，即可查詢您所有報名行程。</p>
+                <h3 className="text-lg font-bold text-gray-800">登入系統查詢行程</h3>
+                <p className="text-xs text-gray-500">請輸入報名時填寫的身分證字號/護照號碼與中文姓名。</p>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
@@ -242,7 +256,7 @@ export default function QueryStep({ onBack }) {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-1">報名者中文姓名 *</label>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">中文姓名 *</label>
                     <input
                       type="text"
                       required
@@ -261,7 +275,7 @@ export default function QueryStep({ onBack }) {
                     userLoading ? 'bg-gray-400' : 'bg-green-600 hover:bg-green-700 shadow-sm'
                   }`}
                 >
-                  {userLoading ? '正在調閱報名清單...' : '查詢報名列表'}
+                  {userLoading ? '正在查詢報名紀錄...' : '查詢報名列表'}
                 </button>
               </form>
 
@@ -271,14 +285,14 @@ export default function QueryStep({ onBack }) {
                 </div>
               )}
 
-              {/* 報名列表 */}
+              {/* 報名列表展示 */}
               {userOrders && (
                 <div className="space-y-4">
                   <div className="flex items-center justify-between border-b pb-2">
                     <h3 className="font-bold text-gray-800 text-lg">
-                      您的報名行程清單 ({userOrders.length} 筆)
+                      報名行程清單 ({userOrders.length} 筆)
                     </h3>
-                    <span className="text-xs text-gray-500">點選行程卡片以查看完整報名資訊</span>
+                    <span className="text-xs text-gray-500">點選行程查看完整資訊與回報匯款</span>
                   </div>
 
                   <div className="grid grid-cols-1 gap-4">
@@ -317,17 +331,16 @@ export default function QueryStep({ onBack }) {
               )}
             </>
           ) : (
-            /* ================= 點選進入：單一報名活動詳情 (唯讀) ================= */
+            /* ================= 點選進入：活動詳細報名資訊 (唯讀) ================= */
             <div className="space-y-6">
-              {/* 返回按鈕 */}
               <button
                 onClick={() => setSelectedOrder(null)}
                 className="inline-flex items-center gap-1 text-sm font-bold text-green-700 hover:underline"
               >
-                ← 返回報名列表
+                ← 返回報名清單
               </button>
 
-              {/* 活動標題與狀態卡 */}
+              {/* 活動標題與當前狀態 */}
               <div className="bg-white border-2 border-green-600/30 p-5 md:p-6 rounded-xl space-y-3">
                 <div className="flex flex-wrap items-center justify-between gap-2 border-b pb-3">
                   <div>
@@ -340,13 +353,13 @@ export default function QueryStep({ onBack }) {
                 </div>
 
                 <div className="text-sm text-gray-700">
-                  <span className="font-bold">梯次與團號：</span>{selectedOrder.出發梯次與團號}
+                  <span className="font-bold">出發梯次與團號：</span>{selectedOrder.出發梯次與團號}
                 </div>
               </div>
 
-              {/* 唯讀報名資料總覽 */}
+              {/* 唯讀報名資訊欄位 */}
               <div className="bg-gray-50 p-6 rounded-xl border border-gray-200 space-y-5">
-                <h4 className="font-bold text-gray-800 text-base border-b pb-2">已登記報名資訊 (唯讀)</h4>
+                <h4 className="font-bold text-gray-800 text-base border-b pb-2">報名詳細資訊 (唯讀)</h4>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                   <div>
@@ -366,7 +379,7 @@ export default function QueryStep({ onBack }) {
                     <span className="font-medium text-gray-800">{selectedOrder.出生年月日}</span>
                   </div>
                   <div>
-                    <span className="text-gray-500 block text-xs">身分證/護照號碼</span>
+                    <span className="text-gray-500 block text-xs">身分證字號/護照號碼</span>
                     <span className="font-mono font-medium text-gray-800">{selectedOrder['身分證字號/護照號碼']}</span>
                   </div>
                   <div>
@@ -377,7 +390,7 @@ export default function QueryStep({ onBack }) {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm border-t pt-3">
                   <div>
-                    <span className="text-gray-500 block text-xs">電子郵件</span>
+                    <span className="text-gray-500 block text-xs">電子信箱</span>
                     <span className="font-medium text-gray-800">{selectedOrder.電子信箱}</span>
                   </div>
                   <div>
@@ -397,16 +410,31 @@ export default function QueryStep({ onBack }) {
                   </div>
                 </div>
 
-                {/* 修改限制提示 */}
+                <div className="space-y-2 border-t pt-3 text-sm">
+                  <div>
+                    <span className="text-gray-500 block text-xs">近一年高海拔健行經歷</span>
+                    <span className="font-medium text-gray-800">{selectedOrder.近一年高海拔健行經歷}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-500 block text-xs">近三年登山經歷簡述</span>
+                    <span className="font-medium text-gray-800">{selectedOrder.近三年登山經歷簡述 || '無'}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-500 block text-xs">特殊病史或身體狀況</span>
+                    <span className="font-medium text-gray-800">{selectedOrder.特殊病史或身體狀況 || '無'}</span>
+                  </div>
+                </div>
+
+                {/* 修改提醒 */}
                 <div className="p-3 bg-amber-50 rounded-lg border border-amber-200 text-xs text-amber-800 leading-relaxed">
                   ℹ️ 本頁面僅供資料檢視，不提供線上修改功能。<strong>需要修改請洽詢客服處理。</strong>
                 </div>
               </div>
 
-              {/* 唯一操作區：填寫匯款後五碼 */}
+              {/* 唯一操作：填寫匯款帳號後五碼 */}
               <div className="bg-white p-6 rounded-xl border-2 border-green-600/40 shadow-sm space-y-4">
                 <div className="flex items-center justify-between border-b pb-3">
-                  <h4 className="font-bold text-gray-900 text-base flex items-center gap-2">
+                  <h4 className="font-bold text-gray-900 text-base">
                     💳 訂金匯款回報
                   </h4>
                   {selectedOrder.匯款帳號後五碼 && (
@@ -438,7 +466,6 @@ export default function QueryStep({ onBack }) {
                   </button>
                 </div>
 
-                {/* 審查與通知信提示 */}
                 <div className="pt-2 text-xs text-gray-500 flex items-center gap-1.5">
                   <span>✉️</span>
                   <span>等待審查完成，會發送活動報名成功通知信件。</span>
@@ -457,7 +484,7 @@ export default function QueryStep({ onBack }) {
               <div className="text-4xl">🔐</div>
               <h3 className="font-bold text-lg text-gray-800">岳野登山社 管理員驗證</h3>
               <p className="text-xs text-gray-500">預設通行密碼為 <code>admin</code></p>
-              
+
               <input
                 type="password"
                 required
@@ -564,3 +591,5 @@ export default function QueryStep({ onBack }) {
     </div>
   );
 }
+
+```
