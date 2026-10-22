@@ -1,11 +1,8 @@
-請打開 **`src/components/QueryStep.js`**，將內容全部清空後替換為以下完整程式碼：
-
-```javascript
 'use client';
 import { useState } from 'react';
 import AdminStep from './AdminStep';
 
-const SHEETDB_URL = 'https://sheetdb.io/api/v1/rzyq1bdriv1u0';
+const SHEETDB_URL = '[https://sheetdb.io/api/v1/rzyq1bdriv1u0](https://sheetdb.io/api/v1/rzyq1bdriv1u0)';
 const SHEET_NAME = 'Registration';
 
 export default function QueryStep({ onBack }) {
@@ -23,7 +20,7 @@ export default function QueryStep({ onBack }) {
   const [remitCode, setRemitCode] = useState('');
   const [isUpdatingRemit, setIsUpdatingRemit] = useState(false);
 
-  // 隊員查詢報名紀錄 (前端安全過濾，避開斜線網址解析問題)
+  // 隊員查詢報名紀錄
   const handleUserQuery = async (e) => {
     if (e) e.preventDefault();
     setUserLoading(true);
@@ -59,7 +56,6 @@ export default function QueryStep({ onBack }) {
 
         if (matched.length > 0) {
           setUserOrders(matched);
-          // 若正處於某筆訂單詳情，同步更新該筆資料狀態
           if (selectedOrder) {
             const updated = matched.find(o => o.報名編號 === selectedOrder.報名編號);
             if (updated) setSelectedOrder(updated);
@@ -134,7 +130,7 @@ export default function QueryStep({ onBack }) {
     }
   };
 
-  // 狀態徽章樣式 (已取消明確標註紅字)
+  // 狀態徽章樣式
   const getStatusBadge = (status) => {
     switch (status) {
       case '已取消':
@@ -446,7 +442,7 @@ export default function QueryStep({ onBack }) {
                     </p>
                     <div>
                       <a
-                        href={`https://passport-upload-sys.vercel.app/?orderId=${encodeURIComponent(selectedOrder.報名編號)}&id=${encodeURIComponent(selectedOrder['身分證字號/護照號碼'])}&name=${encodeURIComponent(selectedOrder.中文姓名)}`}
+                        href={`[https://passport-upload-sys.vercel.app/?orderId=$](https://passport-upload-sys.vercel.app/?orderId=$){encodeURIComponent(selectedOrder.報名編號)}&id=${encodeURIComponent(selectedOrder['身分證字號/護照號碼'])}&name=${encodeURIComponent(selectedOrder.中文姓名)}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-1.5 text-xs text-green-800 hover:text-green-900 font-bold underline"
@@ -462,7 +458,7 @@ export default function QueryStep({ onBack }) {
                     </p>
                     <div className="pt-1">
                       <a
-                        href={`https://passport-upload-sys.vercel.app/?orderId=${encodeURIComponent(selectedOrder.報名編號)}&id=${encodeURIComponent(selectedOrder['身分證字號/護照號碼'])}&name=${encodeURIComponent(selectedOrder.中文姓名)}`}
+                        href={`[https://passport-upload-sys.vercel.app/?orderId=$](https://passport-upload-sys.vercel.app/?orderId=$){encodeURIComponent(selectedOrder.報名編號)}&id=${encodeURIComponent(selectedOrder['身分證字號/護照號碼'])}&name=${encodeURIComponent(selectedOrder.中文姓名)}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-lg text-sm shadow-sm transition-colors group"
@@ -528,10 +524,8 @@ export default function QueryStep({ onBack }) {
 
       {/* ================= 模式 2：獨立管理員後台組件 ================= */}
       {activeTab === 'admin' && (
-        <AdminStep />
+        <AdminStep/>
       )}
     </div>
   );
 }
-
-```
