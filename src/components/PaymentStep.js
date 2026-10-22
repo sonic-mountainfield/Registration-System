@@ -56,7 +56,7 @@ export default function PaymentStep({ orderData, onReset }) {
       <div className="bg-blue-50/60 border border-blue-200 p-5 rounded-xl text-left space-y-2">
         <h3 className="font-bold text-blue-900 text-base">下一步：回報匯款資訊</h3>
         <p className="text-sm text-blue-800 leading-relaxed">
-          完成轉帳後，請前往我們的 <span className="font-bold">「報名查詢系統」</span>，輸入您的身分證字號與 Email，填寫 <span className="font-bold">「匯款帳號後五碼」</span>。系統收到回報後將自動寄發對帳與報名完成確認信！
+          完成轉帳後，請前往我們的 <span className="font-bold">「報名查詢系統」</span>，輸入您的身分證字號與中文姓名，填寫 <span className="font-bold">「匯款帳號後五碼」</span>。系統收到回報後將自動寄發對帳與報名完成確認信！
         </p>
       </div>
 
