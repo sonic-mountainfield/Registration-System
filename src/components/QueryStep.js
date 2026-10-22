@@ -1,10 +1,7 @@
-請打開 **`src/components/QueryStep.js`**，將整份檔案內容刪除，替換為以下已完整整合 `Registration` 工作表與所有業務規則的完整程式碼：
-
-```javascript
 'use client';
 import { useState } from 'react';
 
-const SHEETDB_URL = 'https://sheetdb.io/api/v1/rzyq1bdriv1u0';
+const SHEETDB_URL = '[https://sheetdb.io/api/v1/rzyq1bdriv1u0](https://sheetdb.io/api/v1/rzyq1bdriv1u0)';
 const SHEET_NAME = 'Registration';
 const ADMIN_PASSWORD = 'admin'; // 管理員登入密碼
 
@@ -591,5 +588,3 @@ export default function QueryStep({ onBack }) {
     </div>
   );
 }
-
-```
