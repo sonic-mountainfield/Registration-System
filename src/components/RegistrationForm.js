@@ -1,31 +1,76 @@
 'use client';
 import { useState } from 'react';
 
-// 行程與梯次資料庫 (與報名表單連動)
+// 行程清單
 const TRIP_OPTIONS = {
   '日本系列': [
     '富士山三日行程',
-    '富士山雙路線四日行程',
-    '表銀座縱走五日行程',
-    '劍岳立山四日行程',
-    '槍岳縱走五日行程',
-    '南阿爾卑斯北岳三日行程',
-    '屋久島宮之浦岳四日行程'
+    '富士山五日行程',
+    '槍岳表銀座縱走',
+    '白馬三山縱走',
+    '秋季立山三山',
+    '日本百名山系列_秋季安達太良&磐梯山',
+    '熊野古道 (暫時未上架)'
   ],
   '馬來西亞': [
-    '神山 (Kinabalu) 四日行程'
-  ],
-  '熊野古道': [
-    '中邊路貫通六日行程 (未開放)'
+    '馬來西亞神山 (暫時未上架)'
   ],
   '中國系列': [
-    '四姑娘山大峰五日行程',
-    '亞丁三神山六日行程'
+    '西藏聖母峰旅行',
+    '南疆探索塔莎古道'
+  ]
+};
+
+// 2027 各行程完整梯次對照表
+const BATCH_OPTIONS = {
+  '富士山三日行程': [
+    '[S1] 7月8日(四) ~ 7月10日(六)',
+    '[S2] 7月15日(四) ~ 7月17日(六)',
+    '[S3] 7月22日(四) ~ 7月24日(六)',
+    '[S4] 7月29日(四) ~ 7月31日(六)',
+    '[S5] 8月2日(一) ~ 8月4日(三) - 河口湖湖上祭',
+    '[S6] 8月5日(四) ~ 8月7日(六)',
+    '[S7] 8月22日(日) ~ 8月24日(二)',
+    '[S8] 8月26日(四) ~ 8月28日(六)',
+    '[S9] 8月29日(日) ~ 8月31日(二)',
+    '[S10] 9月2日(四) ~ 9月4日(六)'
+  ],
+  '富士山五日行程': [
+    '[G1] 7月11日(日) ~ 7月15日(四)（河口湖版本）',
+    '[G2] 7月25日(日) ~ 7月29日(四)（御殿場 Outlet 版本）',
+    '[G3] 8月18日(三) ~ 8月22日(日)（河口湖版本）',
+    '[G4] 9月1日(三) ~ 9月5日(日)（河口湖版本）'
+  ],
+  '槍岳表銀座縱走': [
+    '[H1] 7月30日(五) ~ 8月4日(三)'
+  ],
+  '白馬三山縱走': [
+    '[H2] 9月9日(四) ~ 9月14日(二)',
+    '[H3] 9月14日(二) ~ 9月19日(日)'
+  ],
+  '秋季立山三山': [
+    '[T1] 9月26日(日) ~ 9月30日(四)',
+    '[T2] 10月1日(五) ~ 10月5日(二)',
+    '[T3] 10月7日(四) ~ 10月11日(一)'
+  ],
+  '日本百名山系列_秋季安達太良&磐梯山': [
+    '[F1] 10月15日 ~ 10月19日'
+  ],
+  '熊野古道 (暫時未上架)': [
+    '暫時未開放報名'
+  ],
+  '馬來西亞神山 (暫時未上架)': [
+    '暫時未開放報名'
+  ],
+  '西藏聖母峰旅行': [
+    '[TB] 6月4日(五) ~ 6月15日(二)'
+  ],
+  '南疆探索塔莎古道': [
+    '[XS] 4月2日(五) ~ 4月11日(日)'
   ]
 };
 
 export default function RegistrationForm({ onComplete, onBack }) {
-  // 1. 表單欄位狀態 (完全對應 Google Sheet A1~V1 欄位)
   const [formData, setFormData] = useState({
     行程區域: '日本系列',
     行程名稱: '富士山三日行程',
@@ -47,24 +92,32 @@ export default function RegistrationForm({ onComplete, onBack }) {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // 2. 欄位變更處理
+  // 選單切換自動連動
   const handleChange = (e) => {
     const { name, value } = e.target;
-    
-    // 如果切換行程區域，自動將行程名稱重置為該區域的第一個選項
+
     if (name === '行程區域') {
       const defaultTrip = TRIP_OPTIONS[value][0];
+      const defaultBatch = BATCH_OPTIONS[defaultTrip] ? BATCH_OPTIONS[defaultTrip][0] : '';
       setFormData(prev => ({
         ...prev,
         行程區域: value,
-        行程名稱: defaultTrip
+        行程名稱: defaultTrip,
+        出發梯次與團號: defaultBatch
+      }));
+    } else if (name === '行程名稱') {
+      const defaultBatch = BATCH_OPTIONS[value] ? BATCH_OPTIONS[value][0] : '';
+      setFormData(prev => ({
+        ...prev,
+        行程名稱: value,
+        出發梯次與團號: defaultBatch
       }));
     } else {
       setFormData(prev => ({ ...prev, [name]: value }));
     }
   };
 
-  // 3. 送出表單到 SheetDB
+  // 表單送出至 SheetDB
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -73,7 +126,6 @@ export default function RegistrationForm({ onComplete, onBack }) {
     const submitTime = now.toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' });
     const orderId = `YUEYE-${now.getFullYear()}${(now.getMonth() + 1).toString().padStart(2, '0')}${now.getDate().toString().padStart(2, '0')}-${Math.floor(Math.random() * 8999 + 1000)}`;
 
-    // 組成給 SheetDB 的 Payload (Key 完全匹配 Google Sheet 表頭)
     const payload = {
       data: [
         {
@@ -122,7 +174,7 @@ export default function RegistrationForm({ onComplete, onBack }) {
         </button>
       </div>
 
-      {/* --- 行程選擇區 --- */}
+      {/* --- 行程三層連動選擇區 --- */}
       <div className="bg-green-50/50 p-4 rounded-xl border border-green-100 space-y-4">
         <h3 className="font-bold text-green-900 text-lg">選擇報名行程</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -157,15 +209,17 @@ export default function RegistrationForm({ onComplete, onBack }) {
 
         <div>
           <label className="block text-sm font-bold text-gray-700 mb-1">出發梯次與團號 *</label>
-          <input
-            type="text"
+          <select
             name="出發梯次與團號"
             value={formData.出發梯次與團號}
             onChange={handleChange}
             required
             className="w-full p-3 border border-gray-300 rounded-lg bg-white"
-            placeholder="請填寫梯次代碼，如 [S1] 7/8~7/10"
-          />
+          >
+            {(BATCH_OPTIONS[formData.行程名稱] || []).map(batch => (
+              <option key={batch} value={batch}>{batch}</option>
+            ))}
+          </select>
         </div>
       </div>
 
