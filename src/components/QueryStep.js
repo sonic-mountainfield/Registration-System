@@ -393,12 +393,16 @@ export default function QueryStep({ onBack }) {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm border-t pt-3">
-                  <div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm border-t pt-3">
+                  <div className="md:col-span-1">
                     <span className="text-gray-500 block text-xs">電子信箱</span>
                     <span className="font-medium text-gray-800">{selectedOrder.電子信箱}</span>
                   </div>
-                  <div>
+                  <div className="md:col-span-1">
+                    <span className="text-gray-500 block text-xs">LINE 名稱/ID</span>
+                    <span className="font-medium text-gray-800">{selectedOrder['LINE'] || '未提供'}</span>
+                  </div>
+                  <div className="md:col-span-1">
                     <span className="text-gray-500 block text-xs">通訊地址</span>
                     <span className="font-medium text-gray-800">{selectedOrder.通訊地址}</span>
                   </div>
@@ -504,6 +508,17 @@ export default function QueryStep({ onBack }) {
                         目前紀錄後五碼：{selectedOrder.匯款帳號後五碼}
                       </span>
                     )}
+                  </div>
+
+                  {/* --- 新增：官方指定匯款帳號提示區塊 --- */}
+                  <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 text-sm text-gray-700 space-y-1 mb-4">
+                    <p className="font-bold text-gray-900 mb-2">🏦 官方指定匯款帳號</p>
+                    <div className="grid grid-cols-[80px_1fr] gap-1">
+                      {/* 請將下方文字替換為您的真實帳號資訊 */}
+                      <span className="text-gray-500">銀行名稱：</span><span className="font-bold">永豐銀行 (代碼：807) - 延平分行</span>
+                      <span className="text-gray-500">戶  名：</span><span className="font-bold">角落旅行社股份有限公司</span>
+                      <span className="text-gray-500">帳  號：</span><span className="font-mono font-bold text-lg text-green-700">109-018-00089994</span>
+                    </div>
                   </div>
 
                   <p className="text-xs text-gray-600">
