@@ -44,7 +44,7 @@ export default function PaymentStep({ orderData, onReset }) {
         <div className="bg-white p-4 rounded-lg border border-amber-200 font-mono text-sm space-y-1 text-gray-800">
           <div><span className="text-gray-500">戶名：</span>角落旅行社股份有限公司</div>
           <div><span className="text-gray-500">銀行：</span>永豐銀行 (807) 城中分行</div>
-          <div><span className="text-gray-500">帳號：</span>121-018-0009588-8</div>
+          <div><span className="text-gray-500">帳號：</span>109-018-00089994</div>
         </div>
 
         <p className="text-xs text-amber-700">
