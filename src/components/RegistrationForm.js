@@ -404,7 +404,10 @@ export default function RegistrationForm({ onComplete, onBack }) {
           <div className="p-4 bg-orange-50 border border-orange-100 rounded-xl space-y-4">
             <div>
               <label className="block text-sm font-bold text-gray-700 mb-1">2. 溫泉旅館：河口湖溫泉或高山溫泉 *</label>
-              <p className="text-xs text-gray-500 mb-2">※ 僅富士山5日或立山須選。一般安排3~4人入住和式房，客製需求請洽客服安排</p>
+              <div className="text-xs text-gray-500 mb-2 space-y-1">
+                <p>※ 僅富士山5日或立山須選。一般安排 3~4 人入住和式房。</p>
+                <p className="text-red-600 font-bold">※ 注意：若指定兩位入住會有追加費用，請聯繫客服安排。</p>
+              </div>
               <select
                 name="溫泉住宿需求"
                 value={formData.溫泉住宿需求}
@@ -413,7 +416,8 @@ export default function RegistrationForm({ onComplete, onBack }) {
               >
                 <option value="單人報名，請協助分配入住即可">單人報名，請協助分配入住即可</option>
                 <option value="多人報名，請協助分配入住即可">多人報名，請協助分配入住即可</option>
-                <option value="多人報名，請安排特定人數入住">多人報名，請安排特定人數入住</option>
+                <option value="多人報名，指定兩人入住 (有追加費用，需洽客服)">多人報名，指定兩人入住 (有追加費用，需洽客服)</option>
+                <option value="多人報名，請安排特定人數入住 (需洽客服)">多人報名，請安排特定人數入住 (需洽客服)</option>
               </select>
             </div>
             <div>
