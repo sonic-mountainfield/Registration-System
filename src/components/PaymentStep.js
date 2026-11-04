@@ -60,10 +60,29 @@ export default function PaymentStep({ orderData, onReset }) {
         </p>
       </div>
 
+      {/* 加入官方 LINE 提示區塊 */}
+      <div className="bg-[#06C755]/10 border border-[#06C755]/30 p-5 rounded-xl text-left space-y-4">
+        <h3 className="font-bold text-[#06C755] text-lg flex items-center gap-2">
+          💬 重要：加入官方 LINE 通知客服
+        </h3>
+        <p className="text-sm text-gray-800 leading-relaxed">
+          報名完成後，<span className="font-bold text-red-600">請務必點擊下方按鈕加入「岳野海外活動」官方 LINE</span>，並傳送訊息通知我們您已完成報名手續，以便客服人員為您核對資料。
+        </p>
+        <a
+          href="https://line.me/ti/p/~@022kaztn"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="w-full flex items-center justify-center gap-2 py-3.5 bg-[#06C755] hover:bg-[#05b34c] text-white font-bold rounded-lg transition-colors shadow-sm"
+        >
+          <span>加入岳野官方 LINE 帳號</span>
+          <span className="text-xl">↗</span>
+        </a>
+      </div>
+
       {/* 返回首頁按鈕 */}
       <button
         onClick={onReset}
-        className="w-full py-3 bg-gray-800 hover:bg-gray-900 text-white font-bold rounded-lg transition-colors"
+        className="w-full py-3 bg-gray-800 hover:bg-gray-900 text-white font-bold rounded-lg transition-colors mt-4"
       >
         返回報名系統首頁
       </button>
