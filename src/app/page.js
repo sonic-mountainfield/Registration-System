@@ -4,9 +4,10 @@ import ConsentStep from '../components/ConsentStep';
 import RegistrationForm from '../components/RegistrationForm';
 import PaymentStep from '../components/PaymentStep';
 import QueryStep from '../components/QueryStep';
+import QuotaStep from '../components/QuotaStep'; // 👈 匯入新建立的名額查詢組件
 
 export default function Home() {
-  // 頁面主模式：'portal' (首頁選單) | 'register' (報名流程) | 'query' (報名查詢)
+  // 頁面主模式：'portal' (首頁選單) | 'register' (報名流程) | 'query' (報名查詢) | 'quota' (名額查詢)
   const [viewMode, setViewMode] = useState('portal');
 
   // 報名流程步驟 (1: 同意書, 2: 填寫表單, 3: 完成與繳費指示)
@@ -37,7 +38,7 @@ export default function Home() {
         <p className="text-gray-600 mt-2 text-base md:text-lg">海外登山行程服務系統</p>
       </div>
 
-      {/* 模式一：入口大廳 (首頁兩個按鈕) */}
+      {/* 模式一：入口大廳 (首頁選單) */}
       {viewMode === 'portal' && (
         <div className="w-full max-w-xl bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-10 text-center space-y-5">
           <p className="text-gray-600 font-medium pb-2">請選擇您要辦理的服務項目：</p>
@@ -75,6 +76,22 @@ export default function Home() {
               </div>
             </div>
             <span className="text-3xl">🔍</span>
+          </button>
+
+          {/* 按鈕 3：活動名額查詢 👈 新增區塊 */}
+          <button
+            onClick={() => setViewMode('quota')}
+            className="w-full py-5 px-6 bg-white hover:bg-orange-50 text-gray-800 border-2 border-gray-200 hover:border-orange-300 rounded-xl transition-all duration-200 text-left flex items-center justify-between group"
+          >
+            <div>
+              <div className="text-xl font-bold group-hover:translate-x-1 transition-transform text-gray-900">
+                活動名額查詢 →
+              </div>
+              <div className="text-sm text-gray-500 mt-1">
+                即時查詢各行程梯次剩餘可報名與待確認人數
+              </div>
+            </div>
+            <span className="text-3xl">📊</span>
           </button>
         </div>
       )}
@@ -135,6 +152,13 @@ export default function Home() {
       {viewMode === 'query' && (
         <div className="w-full max-w-4xl bg-white rounded-xl shadow-sm border border-gray-100 p-6 md:p-8">
           <QueryStep onBack={handleBackToPortal} />
+        </div>
+      )}
+
+      {/* 模式四：活動名額查詢 👈 新增區塊 */}
+      {viewMode === 'quota' && (
+        <div className="w-full max-w-4xl bg-white rounded-xl shadow-sm border border-gray-100 p-6 md:p-8">
+          <QuotaStep onBack={handleBackToPortal} />
         </div>
       )}
     </main>
